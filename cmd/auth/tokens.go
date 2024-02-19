@@ -20,7 +20,7 @@ func (app *application) generateTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	var tokens tokens
 
-	err = tokens.generate(app.tokenConfig.expires, app.tokenConfig.secret)
+	err = tokens.generate(app.config.token.expires, app.config.token.secret)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -49,7 +49,7 @@ func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 
 	var tokens tokens
 
-	err = tokens.generate(app.tokenConfig.expires, app.tokenConfig.secret)
+	err = tokens.generate(app.config.token.expires, app.config.token.secret)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

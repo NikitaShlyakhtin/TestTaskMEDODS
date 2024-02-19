@@ -8,4 +8,4 @@ include .envrc
 ## run/api: run the cmd/auth application
 .PHONY: run/auth
 run/auth:
-	go run ./cmd/auth
+	go run ./cmd/auth -db-connection-string=${MONGODB_URI}
