@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"medods/internal/auth"
 	"net/http"
 	"strings"
 )
@@ -78,6 +79,33 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	if err != io.EOF {
 		return errors.New("body must only contain a single JSON value")
 	}
+
+	return nil
+}
+
+func (tokens *tokens) generate(expires int, secret string) error {
+	/*
+		Сейчас я использую struct с фиксированными полями для генерации токенов,
+		но в реальном приложении можно передавать любой интерфейс
+	*/
+	accessToken, err := auth.GenerateJWT(struct {
+		Name   string
+		Access string
+	}{
+		Name:   "Nikita",
+		Access: "admin",
+	}, expires, secret)
+	if err != nil {
+		return err
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		return err
+	}
+
+	tokens.AccessToken = accessToken
+	tokens.RefreshToken = refreshToken
 
 	return nil
 }
