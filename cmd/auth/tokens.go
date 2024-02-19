@@ -8,11 +8,19 @@ type tokens struct {
 }
 
 func (app *application) generateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Read GUID from the request body
+	var input struct {
+		GUID string `json:"guid"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	var tokens tokens
 
-	err := tokens.generate(app.tokenConfig.expires, app.tokenConfig.secret)
+	err = tokens.generate(app.tokenConfig.expires, app.tokenConfig.secret)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
