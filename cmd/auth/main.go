@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"medods/internal/data"
 	"medods/internal/jsonlog"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,8 +18,9 @@ type config struct {
 	port  int
 	env   string
 	token struct {
-		secret  string
-		expires int // Hours until token expires
+		secret         string
+		accessExpires  int // Hours until access token expires
+		refreshExpires int // Hours until refresh token expires
 	}
 	db struct {
 		connectionString string
@@ -29,6 +31,7 @@ type application struct {
 	config config
 	logger *jsonlog.Logger
 	wg     sync.WaitGroup
+	models data.Models
 }
 
 func main() {
@@ -38,7 +41,8 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	flag.StringVar(&cfg.token.secret, "token-secret", "secret", "JWT secret")
-	flag.IntVar(&cfg.token.expires, "token-expires", 72, "JWT expiration in hours")
+	flag.IntVar(&cfg.token.accessExpires, "token-expires", 72, "Access token expiration in hours")
+	flag.IntVar(&cfg.token.refreshExpires, "refresh-expires", 24*365, "Refresh token expiration in hours")
 
 	flag.StringVar(&cfg.db.connectionString, "db-connection-string", "", "MongoDB connection string")
 
@@ -58,6 +62,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	err = app.serve()

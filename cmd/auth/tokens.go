@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"medods/internal/data"
+	"net/http"
+	"time"
+)
 
 type tokens struct {
 	AccessToken  string `json:"access"`
@@ -20,13 +24,23 @@ func (app *application) generateTokenHandler(w http.ResponseWriter, r *http.Requ
 
 	var tokens tokens
 
-	err = tokens.generate(app.config.token.expires, app.config.token.secret)
+	err = tokens.generate(app.config.token.accessExpires, app.config.token.secret)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	// TODO: Save hashed Refresh token and its expiration date to the database with GUID
+	token := data.Token{
+		GUID:          input.GUID,
+		RefreshToken:  tokens.RefreshToken,
+		RefreshExpiry: time.Now().Add(time.Duration(app.config.token.refreshExpires) * time.Hour),
+	}
+
+	err = app.models.Tokens.Insert(&token)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"tokens": tokens}, nil)
 	if err != nil {
@@ -49,7 +63,7 @@ func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 
 	var tokens tokens
 
-	err = tokens.generate(app.config.token.expires, app.config.token.secret)
+	err = tokens.generate(app.config.token.accessExpires, app.config.token.secret)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
