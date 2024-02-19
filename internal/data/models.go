@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict   = errors.New("edit conflict")
+	ErrRecordNotFound      = errors.New("record not found")
+	ErrEditConflict        = errors.New("edit conflict")
+	ErrRefreshTokenExpired = errors.New("refresh token has expired")
 )
 
 type Models struct {

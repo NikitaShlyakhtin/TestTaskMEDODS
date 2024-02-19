@@ -3,7 +3,6 @@ package main
 import (
 	"medods/internal/data"
 	"net/http"
-	"time"
 )
 
 type tokens struct {
@@ -22,21 +21,7 @@ func (app *application) generateTokenHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var tokens tokens
-
-	err = tokens.generate(app.config.token.accessExpires, app.config.token.secret)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	token := data.Token{
-		GUID:          input.GUID,
-		RefreshToken:  tokens.RefreshToken,
-		RefreshExpiry: time.Now().Add(time.Duration(app.config.token.refreshExpires) * time.Hour),
-	}
-
-	err = app.models.Tokens.Insert(&token)
+	tokens, err := app.generateAndInsertToken(input.GUID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -59,17 +44,24 @@ func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TODO: Verify that the Refresh token is valid and not expired
+	guid, err := app.models.Tokens.ValidateToken(input.RefreshToken)
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			app.notFoundResponse(w, r)
+		case data.ErrRefreshTokenExpired:
+			app.tokenExpiredResponse(w, r, err)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 
-	var tokens tokens
-
-	err = tokens.generate(app.config.token.accessExpires, app.config.token.secret)
+	tokens, err := app.generateAndInsertToken(guid)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
-	// TODO: If the Refresh token was valid then update hashed Refresh token in the database with GUID
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"tokens": tokens}, nil)
 	if err != nil {

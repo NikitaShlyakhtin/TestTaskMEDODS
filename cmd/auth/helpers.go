@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"medods/internal/auth"
+	"medods/internal/data"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type envelope map[string]interface{}
@@ -108,4 +110,26 @@ func (tokens *tokens) generate(expires int, secret string) error {
 	tokens.RefreshToken = refreshToken
 
 	return nil
+}
+
+func (app *application) generateAndInsertToken(guid string) (tokens, error) {
+	var tokens tokens
+
+	err := tokens.generate(app.config.token.accessExpires, app.config.token.secret)
+	if err != nil {
+		return tokens, err
+	}
+
+	token := data.Token{
+		GUID:          guid,
+		RefreshToken:  tokens.RefreshToken,
+		RefreshExpiry: time.Now().Add(time.Duration(app.config.token.refreshExpires) * time.Hour),
+	}
+
+	err = app.models.Tokens.Insert(&token)
+	if err != nil {
+		return tokens, err
+	}
+
+	return tokens, nil
 }

@@ -33,7 +33,7 @@ func (m TokenModel) Insert(token *Token) error {
 
 	doc := bson.M{
 		"guid":          token.GUID,
-		"hashedToken":   hashedToken,
+		"hashedToken":   string(hashedToken),
 		"refreshExpiry": token.RefreshExpiry,
 	}
 
@@ -49,4 +49,52 @@ func (m TokenModel) Insert(token *Token) error {
 	}
 
 	return nil
+}
+
+func (m TokenModel) ValidateToken(refreshToken string) (string, error) {
+	collection := m.DB.Database("medods").Collection("tokens")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var result struct {
+		GUID          string    `bson:"guid"`
+		HashedToken   string    `bson:"hashedToken"`
+		RefreshExpiry time.Time `bson:"refreshExpiry"`
+	}
+
+	cur, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return "", err
+	}
+	defer cur.Close(ctx)
+
+	tokenFound := false
+
+	for cur.Next(ctx) {
+		err := cur.Decode(&result)
+		if err != nil {
+			return "", err
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(result.HashedToken), []byte(refreshToken))
+		if err == nil {
+			tokenFound = true
+			break
+		}
+	}
+
+	if err := cur.Err(); err != nil {
+		return "", nil
+	}
+
+	if time.Now().After(result.RefreshExpiry) {
+		return "", ErrRefreshTokenExpired
+	}
+
+	if tokenFound {
+		return result.GUID, nil
+	}
+
+	return "", ErrRecordNotFound
 }
