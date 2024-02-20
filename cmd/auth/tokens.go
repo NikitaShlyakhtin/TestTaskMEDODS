@@ -52,6 +52,13 @@ func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	v := validator.New()
+
+	if data.ValidateRefreshToken(v, input.RefreshToken); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
 	guid, err := app.models.Tokens.Find(input.RefreshToken)
 	if err != nil {
 		switch err {

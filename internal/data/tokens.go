@@ -104,3 +104,8 @@ func ValidateGUID(v *validator.Validator, guid string) {
 	v.Check(guid != "", "guid", "must be provided")
 	v.Check(validator.Matches(guid, validator.GUIDRX), "guid", "must be in the correct format")
 }
+
+func ValidateRefreshToken(v *validator.Validator, token string) {
+	v.Check(token != "", "refresh_token", "must be provided")
+	v.Check(len(token) == 44, "refresh_token", "must be 44 bytes long")
+}
