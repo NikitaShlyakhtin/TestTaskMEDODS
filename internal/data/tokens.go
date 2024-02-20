@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"medods/internal/validator"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,7 +52,7 @@ func (m TokenModel) Insert(token *Token) error {
 	return nil
 }
 
-func (m TokenModel) ValidateToken(refreshToken string) (string, error) {
+func (m TokenModel) Find(refreshToken string) (string, error) {
 	collection := m.DB.Database("medods").Collection("tokens")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -97,4 +98,9 @@ func (m TokenModel) ValidateToken(refreshToken string) (string, error) {
 	}
 
 	return "", ErrRecordNotFound
+}
+
+func ValidateGUID(v *validator.Validator, guid string) {
+	v.Check(guid != "", "guid", "must be provided")
+	v.Check(validator.Matches(guid, validator.GUIDRX), "guid", "must be in the correct format")
 }

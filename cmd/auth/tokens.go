@@ -2,6 +2,7 @@ package main
 
 import (
 	"medods/internal/data"
+	"medods/internal/validator"
 	"net/http"
 )
 
@@ -18,6 +19,13 @@ func (app *application) generateTokenHandler(w http.ResponseWriter, r *http.Requ
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	v := validator.New()
+
+	if data.ValidateGUID(v, input.GUID); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
@@ -44,7 +52,7 @@ func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	guid, err := app.models.Tokens.ValidateToken(input.RefreshToken)
+	guid, err := app.models.Tokens.Find(input.RefreshToken)
 	if err != nil {
 		switch err {
 		case data.ErrRecordNotFound:
